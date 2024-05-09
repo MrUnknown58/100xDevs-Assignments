@@ -37,54 +37,73 @@ class Calculator {
     this.result = 0;
   }
   getResult() {
+    console.log(this.result);
     return this.result;
   }
   calculate(expression) {
-    const parsedExpression = expression
-      .replace(/\s+/g, "")
-      .split(/([\+\-\*\/\(\)])/)
-      .filter((e) => e !== "");
-    let result = 0;
-    let operator = "+";
-    let stack = [];
-    for (let i = 0; i < parsedExpression.length; i++) {
-      if (
-        parsedExpression[i] === "+" ||
-        parsedExpression[i] === "-" ||
-        parsedExpression[i] === "*" ||
-        parsedExpression[i] === "/"
-      ) {
-        operator = parsedExpression[i];
-      } else if (parsedExpression[i] === "(") {
-        stack.push({ result, operator });
-        result = 0;
-        operator = "+";
-      } else if (parsedExpression[i] === ")") {
-        const { result: prevResult, operator: prevOperator } = stack.pop();
-        if (prevOperator === "+") {
-          result = prevResult + result;
-        } else if (prevOperator === "-") {
-          result = prevResult - result;
-        } else if (prevOperator === "*") {
-          result = prevResult * result;
-        } else if (prevOperator === "/") {
-          result = prevResult / result;
+    const operatorPrecedence = {
+      "+": 1,
+      "-": 1,
+      "*": 2,
+      "/": 2,
+    };
+
+    let outputQueue = [];
+    let operatorStack = [];
+
+    expression.split(/\b/).forEach((token) => {
+      let floatVal = parseFloat(token);
+      if (!isNaN(floatVal)) {
+        outputQueue.push(floatVal);
+      } else if (token in operatorPrecedence) {
+        while (
+          operatorStack.length > 0 &&
+          operatorPrecedence[operatorStack[operatorStack.length - 1]] >=
+            operatorPrecedence[token]
+        ) {
+          outputQueue.push(operatorStack.pop());
         }
+        operatorStack.push(token);
+      } else if (token === "(") {
+        operatorStack.push(token);
+      } else if (token === ")") {
+        while (operatorStack[operatorStack.length - 1] !== "(") {
+          outputQueue.push(operatorStack.pop());
+        }
+        operatorStack.pop(); // Pop the '('
+      }
+    });
+
+    while (operatorStack.length > 0) {
+      outputQueue.push(operatorStack.pop());
+    }
+
+    let evaluationStack = [];
+
+    outputQueue.forEach((token) => {
+      if (typeof token === "number") {
+        evaluationStack.push(token);
       } else {
-        const number = parseInt(parsedExpression[i]);
-        if (isNaN(number)) throw new Error("Invalid input");
-        if (operator === "+") {
-          result += number;
-        } else if (operator === "-") {
-          result -= number;
-        } else if (operator === "*") {
-          result *= number;
-        } else if (operator === "/") {
-          result /= number;
+        let b = evaluationStack.pop();
+        let a = evaluationStack.pop();
+        switch (token) {
+          case "+":
+            evaluationStack.push(a + b);
+            break;
+          case "-":
+            evaluationStack.push(a - b);
+            break;
+          case "*":
+            evaluationStack.push(a * b);
+            break;
+          case "/":
+            evaluationStack.push(a / b);
+            break;
         }
       }
-    }
-    return result;
+    });
+
+    this.result = evaluationStack.pop();
   }
 }
 
